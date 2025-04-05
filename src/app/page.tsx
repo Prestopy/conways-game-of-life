@@ -12,7 +12,7 @@ export default function Home() {
 
     const state = useRef<Cell[][]>([[]]);
 
-    const [settings, setSettings] = useState({
+    const defaultSettings = {
         showRecency: true,
         frameLen: 50, // ms - time between frames
 
@@ -23,7 +23,8 @@ export default function Home() {
         // come to life
         minToReproduce: 3,
         maxToReproduce: 3
-    });
+    }
+    const [settings, setSettings] = useState(defaultSettings);
 
     const settingsRef = useRef(settings);
     useEffect(() => { settingsRef.current = settings; }, [settings]);
@@ -106,6 +107,31 @@ export default function Home() {
         setTimeout(() => {
 
         }, settingsRef.current.frameLen);
+    }
+
+    const resetGrid = () => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        canvas.width = width;
+        canvas.height = height;
+
+        // Initialize the state with random values
+        for (let i = 0; i < Math.floor(width / 10); i++) {
+            state.current[i] = [];
+            for (let j = 0; j < Math.floor(height / 10); j++) {
+                state.current[i][j] = {
+                    isAlive: Math.random() < 0.5,
+                    lastUpdated: 0
+                }
+            }
+        }
     }
 
     useEffect(() => {
@@ -239,6 +265,12 @@ export default function Home() {
                                         }
                                     })
                                 } } className="font-mono" /></label>
+
+                                <p className="mt-8 text-red-500 cursor-pointer" onClick={resetGrid}>Reset grid (not rules)</p>
+                                <p className="text-red-500 cursor-pointer" onClick={() => {
+                                    resetGrid();
+                                    setSettings(defaultSettings);
+                                }}>Reset grid AND rules</p>
                             </div>
                         </div>
                     )}
