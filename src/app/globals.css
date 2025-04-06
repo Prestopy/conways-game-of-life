@@ -19,6 +19,11 @@
     }
 }
 
+h1 {
+    font-weight: bold !important;
+    margin-top: 20px;
+}
+
 body {
     background: var(--background);
     color: var(--foreground);
@@ -33,6 +38,44 @@ input {
     font-weight: bold;
 }
 
+.draw-tool {
+    transition: 200ms ease-out;
+}
+
+#settings {
+    transition: width 0.3s ease, opacity 200ms;
+}
 #settings-cont:hover > #settings {
-    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+input[type="range"] {
+    -webkit-appearance: none;  /* Override default CSS styles */
+    appearance: none;
+    width: 200px;
+    height: 20px;
+    background: #ffffff;
+    outline: none;
+    -webkit-transition: .2s;
+    transition: opacity .2s;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; /* Override default look */
+    appearance: none;
+    width: 20px; /* Set a specific slider handle width */
+    height: 20px; /* Slider handle height */
+    background: #4678eb; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px; /* Set a specific slider handle width */
+    height: 20px; /* Slider handle height */
+    background: #4678eb; /* Green background */
+    cursor: pointer; /* Cursor on hover */
+}
+
+abbr {
+    text-decoration: none;
 }
