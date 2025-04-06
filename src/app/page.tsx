@@ -106,7 +106,7 @@ export default function Home() {
         }
 
         state.current = newState;
-        
+
         // render AFTER updates to make sure cell drawings are accounted for
         renderGrid(ctx);
 
@@ -117,7 +117,7 @@ export default function Home() {
             const currentTime = performance.now();
             const elapsedTime = currentTime - startTime;
 
-            if (elapsedTime >= settingsRef.current.frameLen) {
+            if (!isPausedRef.current && elapsedTime >= settingsRef.current.frameLen) {
                 requestAnimationFrame(() => step(ctx));
             } else {
                 setTimeout(nextFrame, 1);
@@ -352,7 +352,11 @@ export default function Home() {
         return `rgb(${Math.round(red)}, ${Math.round(green)}, ${Math.round(blue)})`;
     };
 
-    const [drawMode, setDrawMode] = useState<"none" | "draw" | "erase">("draw");
+    const [isPaused, setIsPaused] = useState(false);
+    const isPausedRef = useRef(isPaused);
+    useEffect(() => { isPausedRef.current = isPaused; }, [isPaused]);
+
+    const [drawMode, setDrawMode] = useState<"none" | "draw" | "erase">("none");
     const drawModeRef = useRef(drawMode);
     useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
 
@@ -365,13 +369,22 @@ export default function Home() {
     return (
         <div>
             <div id="settings-cont" className="absolute w-fit top-5 right-5 z-10 select-none">
-                <div id="settings" className="p-5 bg-black ring-white" onMouseEnter={() => { tempDrawBlockRef.current = true }} onMouseLeave={() => tempDrawBlockRef.current = false} style={{ opacity: settings.fullScreen ? 0 : 1, boxShadow: "0px 10px 25px black" }}>
+                <div id="settings" className="p-5 bg-black ring-white" onMouseEnter={() => { tempDrawBlockRef.current = true }} onMouseLeave={() => {
+                    tempDrawBlockRef.current = false
+                    setShowSettings(false);
+                }} style={{ opacity: settings.fullScreen ? 0 : 1, boxShadow: "0px 10px 25px black" }}>
                     <div
                         className="cursor-pointer flex flex-row justify-end ring-2 px-3 py-2"
                     >
-                        <div className="flex flex-row gap-3 mr-10">
-                            <p className="font-bold">Draw cells</p>
-                            <p className="draw-tool" onClick={() => {setDrawMode("none")}} style={{ transform: `scale(${drawMode == "none" ? 2 : 1})` }}><abbr title="No cell">👀</abbr></p>
+                        <div className="flex flex-row gap-5 mr-10">
+                            <p className="font-bold mr-5">Playback</p>
+                            <p className="draw-tool" onClick={() => {setIsPaused(false)}} style={{ transform: `scale(${!isPaused ? 2 : 1})` }}><abbr title="Play">▶️</abbr></p>
+                            <p className="draw-tool" onClick={() => {setIsPaused(true)}} style={{ transform: `scale(${isPaused ? 2 : 1})` }}><abbr title="Pause">⏸️</abbr></p>
+                        </div>
+
+                        <div className="flex flex-row gap-5 mr-10">
+                            <p className="font-bold mr-5">Draw cells</p>
+                            <p className="draw-tool" onClick={() => {setDrawMode("none")}} style={{ transform: `scale(${drawMode == "none" ? 2 : 1})` }}><abbr title="Viewing mode">👀</abbr></p>
                             <p className="draw-tool" onClick={() => {setDrawMode("draw")}} style={{ transform: `scale(${drawMode == "draw" ? 2 : 1})` }}><abbr title="Draw cell">✏️</abbr></p>
                             <p className="draw-tool" onClick={() => {setDrawMode("erase")}} style={{ transform: `scale(${drawMode == "erase" ? 2 : 1})` }}><abbr title="Erase cell">❌</abbr></p>
                         </div>
@@ -501,28 +514,29 @@ export default function Home() {
                                     })
                                 } } className="font-mono" /></label>
 
-                                <p
-                                    className="mt-8 text-red-500 cursor-pointer"
-                                    onClick={resetGrid}
-                                >Randomize grid</p>
-                                <p
-                                    className="text-red-500 cursor-pointer"
-                                    onClick={() => {
-                                        resetGrid();
-                                        setSettings(defaultSettings);
-                                    }}
-                                >Randomize grid and randomize rules</p>
-                                <p
-                                    className="text-red-500 cursor-pointer"
-                                    onClick={() => {
-                                        for (let i=0; i<gridDimsRef.current.y; i++) {
-                                            for (let j=0; j<gridDimsRef.current.x; j++) {
-                                                state.current[i][j].isAlive = false;
-                                                state.current[i][j].lastUpdated = 0;
+                                <div className="mt-8 flex flex-col gap-2">
+                                    <p
+                                        className="text-red-500 cursor-pointer"
+                                        onClick={() => {
+                                            setSettings(defaultSettings);
+                                        }}
+                                    >Reset rules</p>
+                                    <p
+                                        className="text-red-500 cursor-pointer"
+                                        onClick={resetGrid}
+                                    >Randomize grid</p>
+                                    <p
+                                        className="text-red-500 cursor-pointer"
+                                        onClick={() => {
+                                            for (let i=0; i<gridDimsRef.current.y; i++) {
+                                                for (let j=0; j<gridDimsRef.current.x; j++) {
+                                                    state.current[i][j].isAlive = false;
+                                                    state.current[i][j].lastUpdated = 0;
+                                                }
                                             }
-                                        }
-                                    }}
-                                >Clear grid</p>
+                                        }}
+                                    >Clear grid</p>
+                                </div>
                             </div>
                         </div>
                     )}
