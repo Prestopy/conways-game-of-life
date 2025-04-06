@@ -11,10 +11,16 @@ export default function Home() {
     }
 
     const state = useRef<Cell[][]>([[]]);
+    const [gridDims, setGridDims] = useState({
+        x: state.current.length,
+        y: state.current[0].length
+    });
 
     const defaultSettings = {
         showRecency: true,
+        fullScreen: false,
         frameLen: 50, // ms - time between frames
+        cellSize: 10, // px - size of each cell
 
         // stay alive
         minToLive: 2,
@@ -34,7 +40,10 @@ export default function Home() {
     //     height: window.innerHeight
     // });
 
-    const step = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
+    const step = (ctx: CanvasRenderingContext2D) => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
         ctx.clearRect(0, 0, width, height);
 
         let v = state.current;
@@ -56,7 +65,7 @@ export default function Home() {
                     } else {
                         ctx.fillStyle = "#ffffff";
                     }
-                    ctx.fillRect(i * 10, j * 10, 10, 10);
+                    ctx.fillRect(j * 10, i * 10, 10, 10);
                 }
             }
         }
@@ -98,7 +107,7 @@ export default function Home() {
         const int = setInterval(() => {
             elapsed += 1;
             if (elapsed >= settingsRef.current.frameLen) {
-                requestAnimationFrame(() => step(ctx, width, height));
+                requestAnimationFrame(() => step(ctx));
                 clearInterval(int);
             }
         }, 1)
@@ -107,6 +116,47 @@ export default function Home() {
         setTimeout(() => {
 
         }, settingsRef.current.frameLen);
+    }
+
+    const resizeGrid = (trim: boolean = false) => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) return;
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const newY = Math.floor(height / settings.cellSize)
+        const newX = Math.floor(width / settings.cellSize)
+
+        if (trim) {
+            // trim the grid to the new size
+            state.current = state.current.slice(0, newY).map(row => row.slice(0, newX));
+        }
+
+        for (let i = 0; i < newY; i++) {
+            if (i >= state.current.length) {
+                state.current.push([]);
+            }
+
+            for (let j = 0; j < newX; j++) {
+                if (j >= state.current[i].length) {
+                    state.current[i].push({
+                        isAlive: Math.random() < 0.5,
+                        lastUpdated: 1
+                    })
+                }
+            }
+        }
+
+        setGridDims({
+            x: state.current[0].length,
+            y: state.current.length
+        });
     }
 
     const resetGrid = () => {
@@ -123,9 +173,9 @@ export default function Home() {
         canvas.height = height;
 
         // Initialize the state with random values
-        for (let i = 0; i < Math.floor(width / 10); i++) {
+        for (let i = 0; i < Math.floor(height / settings.cellSize); i++) {
             state.current[i] = [];
-            for (let j = 0; j < Math.floor(height / 10); j++) {
+            for (let j = 0; j < Math.floor(width / settings.cellSize); j++) {
                 state.current[i][j] = {
                     isAlive: Math.random() < 0.5,
                     lastUpdated: 0
@@ -135,11 +185,6 @@ export default function Home() {
     }
 
     useEffect(() => {
-        // setInitWindowSize({
-        //     width: window.innerWidth,
-        //     height: window.innerHeight
-        // });
-
         const canvas = canvasRef.current;
         if (!canvas) return;
 
@@ -153,9 +198,9 @@ export default function Home() {
         canvas.height = height;
 
         // Initialize the state with random values
-        for (let i = 0; i < Math.floor(width / 10); i++) {
+        for (let i = 0; i < Math.floor(height / settings.cellSize); i++) {
             state.current[i] = [];
-            for (let j = 0; j < Math.floor(height / 10); j++) {
+            for (let j = 0; j < Math.floor(width / settings.cellSize); j++) {
                 state.current[i][j] = {
                     isAlive: Math.random() < 0.5,
                     lastUpdated: 0
@@ -163,18 +208,47 @@ export default function Home() {
             }
         }
 
+        setGridDims({
+            x: Math.floor(width / settings.cellSize),
+            y: Math.floor(height / settings.cellSize)
+        })
+
+        // event listeners
+        window.addEventListener("resize", () => {
+            resizeGrid();
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+        window.addEventListener("fullscreenchange", () => {
+            if (document.fullscreenElement) {
+                setSettings(prev => {
+                    return {
+                        ...prev,
+                        fullScreen: true
+                    }
+                })
+            } else {
+                setSettings(prev => {
+                    return {
+                        ...prev,
+                        fullScreen: false
+                    }
+                })
+            }
+        })
+
         // animation
-        requestAnimationFrame(() => step(ctx, width, height));
+        requestAnimationFrame(() => step(ctx));
     }, []);
 
     const [showSettings, setShowSettings] = useState(false);
 
     return (
         <div>
-            <div className="absolute p-10 w-fit h-40 top-5 right-5">
-                <div className="p-5 bg-black" style={{ boxShadow: "0px 10px 25px black" }}>
+            <div id="settings-cont" className="absolute w-fit top-5 right-5">
+                <div id="settings" className="p-5 bg-black" style={{ visibility: settings.fullScreen ? "hidden" : "visible", boxShadow: "0px 10px 25px black" }}>
                     <div
-                        className="cursor-pointer flex flex-row"
+                        className="cursor-pointer flex flex-row justify-end"
                         onClick={() => setShowSettings(prev => !prev)}
                     >
                         <p>{showSettings ? "Hide" : "Show"} settings</p>
@@ -185,11 +259,31 @@ export default function Home() {
                             <div className="flex flex-col gap-2">
                                 <h1 className="font-bold mt-4">Settings</h1>
                                 <label onClick={() => setSettings(prev => {
+                                    if (!prev.fullScreen) {
+                                        // will become fullscreen
+                                        setShowSettings(false);
+                                        if (!document.fullscreenElement) {
+                                            document.documentElement.requestFullscreen();
+                                            resizeGrid();
+                                        }
+                                    } else {
+                                        // will become windowed
+                                        if (document.fullscreenElement) {
+                                            document.exitFullscreen();
+                                        }
+                                    }
+                                    return {
+                                        ...prev,
+                                        fullScreen: !prev.fullScreen
+                                    }
+                                })}>Fullscreen: <span className="font-mono font-bold">{settings.fullScreen ? "yes" : "no"}</span></label>
+                                <label onClick={() => resizeGrid(true)}>Trim out-of-bounds cells: <span className="font-mono font-bold">Trim (Currently {gridDims.x} x {gridDims.y})</span></label>
+                                <label onClick={() => setSettings(prev => {
                                     return {
                                         ...prev,
                                         showRecency: !prev.showRecency
                                     }
-                                })}>Indicate recency: <span className="font-mono">{settings.showRecency ? "yes" : "no"}</span></label>
+                                })}>Indicate recency: <span className="font-mono font-bold">{settings.showRecency ? "yes" : "no"}</span></label>
                                 <label>Millisecs/frame: <input type="number" value={settings.frameLen} onChange={ (e) => {
                                     setSettings(prev => {
                                         return {
@@ -266,11 +360,17 @@ export default function Home() {
                                     })
                                 } } className="font-mono" /></label>
 
-                                <p className="mt-8 text-red-500 cursor-pointer" onClick={resetGrid}>Reset grid (not rules)</p>
-                                <p className="text-red-500 cursor-pointer" onClick={() => {
-                                    resetGrid();
-                                    setSettings(defaultSettings);
-                                }}>Reset grid AND rules</p>
+                                <p
+                                    className="mt-8 text-red-500 cursor-pointer"
+                                    onClick={resetGrid}
+                                >Randomize grid</p>
+                                <p
+                                    className="text-red-500 cursor-pointer"
+                                    onClick={() => {
+                                        resetGrid();
+                                        setSettings(defaultSettings);
+                                    }}
+                                >Randomize grid and randomize rules</p>
                             </div>
                         </div>
                     )}
