@@ -374,50 +374,53 @@ export default function Home() {
                     setShowSettings(false);
                 }} style={{ opacity: settings.fullScreen ? 0 : 1, boxShadow: "0px 10px 25px black" }}>
                     <div
-                        className="cursor-pointer flex flex-row justify-end ring-2 px-3 py-2"
+                        className="cursor-pointer flex flex-row gap-10 justify-end ring-2 px-3 py-2"
                     >
-                        <div className="flex flex-row gap-5 mr-10">
-                            <p className="font-bold mr-5">Playback</p>
-                            <p className="draw-tool" onClick={() => {setIsPaused(false)}} style={{ transform: `scale(${!isPaused ? 2 : 1})` }}><abbr title="Play">▶️</abbr></p>
-                            <p className="draw-tool" onClick={() => {setIsPaused(true)}} style={{ transform: `scale(${isPaused ? 2 : 1})` }}><abbr title="Pause">⏸️</abbr></p>
+                        <div className="flex flex-row gap-4">
+                            <p className="font-bold mr-2">Playback</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(false)}} style={{ color: !isPaused ? "#1ed15a" : "#ffffff", transform: `scale(${!isPaused ? 1.5 : 1})` }}>play_arrow</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(true)}} style={{ color: isPaused ? "#e65054" : "#ffffff", transform: `scale(${isPaused ? 1.5 : 1})` }}>pause</p>
                         </div>
 
-                        <div className="flex flex-row gap-5 mr-10">
-                            <p className="font-bold mr-5">Draw cells</p>
-                            <p className="draw-tool" onClick={() => {setDrawMode("none")}} style={{ transform: `scale(${drawMode == "none" ? 2 : 1})` }}><abbr title="Viewing mode">👀</abbr></p>
-                            <p className="draw-tool" onClick={() => {setDrawMode("draw")}} style={{ transform: `scale(${drawMode == "draw" ? 2 : 1})` }}><abbr title="Draw cell">✏️</abbr></p>
-                            <p className="draw-tool" onClick={() => {setDrawMode("erase")}} style={{ transform: `scale(${drawMode == "erase" ? 2 : 1})` }}><abbr title="Erase cell">❌</abbr></p>
+                        <div className="flex flex-row gap-4">
+                            <p className="font-bold mr-2">Draw cells</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("none")}} style={{ color: drawMode == "none" ? "#4678eb" : "#ffffff", transform: `scale(${drawMode == "none" ? 1.5 : 1})` }}>visibility</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("draw")}} style={{ color: drawMode == "draw" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "draw" ? 1.5 : 1})` }}>brush</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("erase")}} style={{ color: drawMode == "erase" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "erase" ? 1.5 : 1})` }}>ink_eraser</p>
                         </div>
 
-                        <p
-                            className="font-bold"
-                            onClick={() => setShowSettings(prev => !prev)}
-                        >{showSettings ? "Hide" : "Show"} settings</p>
+                        <div className="flex flex-row gap-3">
+                            <p
+                                className="material-symbols-outlined"
+                                onClick={() => setShowSettings(prev => !prev)}
+                            >settings</p>
+
+                            <p className="material-symbols-outlined" onClick={() => setSettings(prev => {
+                                if (!prev.fullScreen) {
+                                    // will become fullscreen
+                                    setShowSettings(false);
+                                    if (!document.fullscreenElement) {
+                                        document.documentElement.requestFullscreen();
+                                        resizeGrid();
+                                    }
+                                } else {
+                                    // will become windowed
+                                    if (document.fullscreenElement) {
+                                        document.exitFullscreen();
+                                    }
+                                }
+                                return {
+                                    ...prev,
+                                    fullScreen: !prev.fullScreen
+                                }
+                            })}>{settings.fullScreen ? "fullscreen_exit" : "fullscreen"}</p>
+                        </div>
                     </div>
 
                     { showSettings && (
                         <div className="px-5">
                             <div className="flex flex-col gap-2">
                                 <h1>General</h1>
-                                <label onClick={() => setSettings(prev => {
-                                    if (!prev.fullScreen) {
-                                        // will become fullscreen
-                                        setShowSettings(false);
-                                        if (!document.fullscreenElement) {
-                                            document.documentElement.requestFullscreen();
-                                            resizeGrid();
-                                        }
-                                    } else {
-                                        // will become windowed
-                                        if (document.fullscreenElement) {
-                                            document.exitFullscreen();
-                                        }
-                                    }
-                                    return {
-                                        ...prev,
-                                        fullScreen: !prev.fullScreen
-                                    }
-                                })}>Fullscreen: <span className="font-mono font-bold">{settings.fullScreen ? "yes" : "no"}</span></label>
                                 <label onClick={() => resizeGrid(true)}>Trim out-of-bounds cells: <span className="font-mono font-bold">Trim (Currently {gridDims.x} x {gridDims.y})</span></label>
                                 <label onClick={() => setSettings(prev => {
                                     return {

@@ -1,8 +1,15 @@
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 @import "tailwindcss";
 
 :root {
     --background: #ffffff;
     --foreground: #171717;
+
+    --blue: #4678eb;
+    --green: #1ed15a;
+    --yellow: #f0c930;
+    --red: #e65054;
+    --gray: #646970;
 }
 
 @theme inline {
