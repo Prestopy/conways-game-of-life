@@ -46,7 +46,7 @@ export default function Home() {
     const renderGrid = (ctx: CanvasRenderingContext2D) => {
         ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
-        let v = state.current;
+        const v = state.current;
         for (let i=0; i<v.length; i++) {
             for (let j=0; j<v[i].length; j++) {
                 if (v[i][j].isAlive) {
@@ -72,10 +72,10 @@ export default function Home() {
     }
 
     const step = (ctx: CanvasRenderingContext2D) => {
-        let v = state.current;
+        const v = state.current;
 
         // update
-        let newState = state.current.map(row => row.map(cell => ({ ...cell })));
+        const newState = state.current.map(row => row.map(cell => ({ ...cell })));
 
         for (let i=0; i<v.length; i++) {
             for (let j=0; j<v[i].length; j++) {
@@ -271,10 +271,10 @@ export default function Home() {
             }
         })
 
-        window.addEventListener("mousedown", (e) => {
+        window.addEventListener("mousedown", () => {
             isMouseDownRef.current = true;
         });
-        window.addEventListener("mouseup", (e) => {
+        window.addEventListener("mouseup", () => {
             isMouseDownRef.current = false;
         });
 
@@ -289,7 +289,7 @@ export default function Home() {
         // animation
         requestAnimationFrame(() => step(ctx));
 
-        const renderCursor = () => {
+        const cursorStep = () => {
             const {x, y} = mousePositionRef.current;
 
             cursorCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
@@ -320,7 +320,7 @@ export default function Home() {
                             cell.isAlive = true;
                             cell.lastUpdated = 0;
 
-                            ctx.fillStyle = "#4678eb";
+                            ctx.fillStyle = settingsRef.current.showRecency ? "#4678eb" : "#ffffff";
                             ctx.fillRect(xi * settings.cellSize, yj * settings.cellSize, settings.cellSize, settings.cellSize);
                         } else if (drawModeRef.current === "erase") {
                             cell.isAlive = false;
@@ -332,9 +332,9 @@ export default function Home() {
                 }
             }
 
-            requestAnimationFrame(() => renderCursor());
+            requestAnimationFrame(() => cursorStep());
         }
-        requestAnimationFrame(() => renderCursor());
+        requestAnimationFrame(() => cursorStep());
     }, []);
 
     const [showSettings, setShowSettings] = useState(false);
@@ -383,7 +383,7 @@ export default function Home() {
                         </div>
 
                         <div className="flex flex-row gap-4">
-                            <p className="font-bold mr-2">Draw cells</p>
+                            <p className="font-bold mr-2">Draw tools</p>
                             <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("none")}} style={{ color: drawMode == "none" ? "#4678eb" : "#ffffff", transform: `scale(${drawMode == "none" ? 1.5 : 1})` }}>visibility</p>
                             <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("draw")}} style={{ color: drawMode == "draw" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "draw" ? 1.5 : 1})` }}>brush</p>
                             <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("erase")}} style={{ color: drawMode == "erase" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "erase" ? 1.5 : 1})` }}>ink_eraser</p>
@@ -427,7 +427,7 @@ export default function Home() {
                                         ...prev,
                                         showRecency: !prev.showRecency
                                     }
-                                })}>Indicate recency: <span className="font-mono font-bold">{settings.showRecency ? "yes" : "no"}</span></label>
+                                })}>Indicate cell update recency: <span className="font-mono font-bold">{settings.showRecency ? "yes" : "no"}</span></label>
                                 <label>Millisecs/frame:</label>
                                 <div className="flex flex-row">
                                     <input type="range" min={5} max={2000} value={settings.frameLen} onChange={ (e) => {
