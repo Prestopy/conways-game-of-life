@@ -378,15 +378,15 @@ export default function Home() {
                     >
                         <div className="flex flex-row gap-4">
                             <p className="font-bold mr-2">Playback</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(false)}} style={{ color: !isPaused ? "#1ed15a" : "#ffffff", transform: `scale(${!isPaused ? 1.5 : 1})` }}>play_arrow</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(true)}} style={{ color: isPaused ? "#e65054" : "#ffffff", transform: `scale(${isPaused ? 1.5 : 1})` }}>pause</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(false)}} style={{ color: !isPaused ? "#1ed15a" : "#ffffff", transform: `scale(${!isPaused ? 1.5 : 1})` }}>▶︎{/*play_arrow*/}</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(true)}} style={{ color: isPaused ? "#e65054" : "#ffffff", transform: `scale(${isPaused ? 1.5 : 1})` }}>⏸︎</p>
                         </div>
 
                         <div className="flex flex-row gap-4">
                             <p className="font-bold mr-2">Draw tools</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("none")}} style={{ color: drawMode == "none" ? "#4678eb" : "#ffffff", transform: `scale(${drawMode == "none" ? 1.5 : 1})` }}>visibility</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("draw")}} style={{ color: drawMode == "draw" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "draw" ? 1.5 : 1})` }}>brush</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("erase")}} style={{ color: drawMode == "erase" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "erase" ? 1.5 : 1})` }}>ink_eraser</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("none")}} style={{ color: drawMode == "none" ? "#4678eb" : "#ffffff", transform: `scale(${drawMode == "none" ? 1.5 : 1})` }}>👁️</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("draw")}} style={{ color: drawMode == "draw" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "draw" ? 1.5 : 1})` }}>🖌️</p>
+                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("erase")}} style={{ color: drawMode == "erase" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "erase" ? 1.5 : 1})` }}>🧽</p>
                         </div>
 
                         <div className="flex flex-row gap-3">
