@@ -25,6 +25,11 @@
         --foreground: #ededed;
     }
 }
+svg {
+    font-size: 20px;
+    margin: auto;
+    translate: 0 8%;
+}
 
 h1 {
     font-weight: bold !important;
@@ -61,7 +66,7 @@ input[type="range"] {
     appearance: none;
     width: 200px;
     height: 20px;
-    background: #ffffff;
+    background: var(--foreground);
     outline: none;
     -webkit-transition: .2s;
     transition: opacity .2s;

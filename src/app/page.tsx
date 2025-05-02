@@ -1,6 +1,7 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
+import {FaPlay, FaBrush, FaEraser, FaEye, FaGear, FaMaximize, FaMinimize, FaPause} from "react-icons/fa6";
 
 export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -369,33 +370,32 @@ export default function Home() {
     return (
         <div>
             <div id="settings-cont" className="absolute w-fit top-5 right-5 z-10 select-none">
-                <div id="settings" className="p-5 bg-black ring-white" onMouseEnter={() => { tempDrawBlockRef.current = true }} onMouseLeave={() => {
+                <div id="settings" className="p-5 bg-white dark:bg-black" onMouseEnter={() => { tempDrawBlockRef.current = true }} onMouseLeave={() => {
                     tempDrawBlockRef.current = false
                     setShowSettings(false);
-                }} style={{ opacity: settings.fullScreen ? 0 : 1, boxShadow: "0px 10px 25px black" }}>
+                }} style={{ opacity: settings.fullScreen ? 0 : 1, boxShadow: "0px 5px 25px black" }}>
                     <div
                         className="cursor-pointer flex flex-row gap-10 justify-end ring-2 px-3 py-2"
                     >
                         <div className="flex flex-row gap-4">
                             <p className="font-bold mr-2">Playback</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(false)}} style={{ color: !isPaused ? "#1ed15a" : "#ffffff", transform: `scale(${!isPaused ? 1.5 : 1})` }}>▶︎{/*play_arrow*/}</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setIsPaused(true)}} style={{ color: isPaused ? "#e65054" : "#ffffff", transform: `scale(${isPaused ? 1.5 : 1})` }}>⏸︎</p>
+                            <p className="draw-tool" onClick={() => {setIsPaused(false)}} style={{ color: !isPaused ? "#1ed15a" : "", transform: `scale(${!isPaused ? 1.5 : 1})` }}><FaPlay /></p>
+                            <p className="draw-tool" onClick={() => {setIsPaused(true)}} style={{ color: isPaused ? "#e65054" : "", transform: `scale(${isPaused ? 1.5 : 1})` }}><FaPause /></p>
                         </div>
 
                         <div className="flex flex-row gap-4">
                             <p className="font-bold mr-2">Draw tools</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("none")}} style={{ color: drawMode == "none" ? "#4678eb" : "#ffffff", transform: `scale(${drawMode == "none" ? 1.5 : 1})` }}>👁️</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("draw")}} style={{ color: drawMode == "draw" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "draw" ? 1.5 : 1})` }}>🖌️</p>
-                            <p className="material-symbols-outlined draw-tool" onClick={() => {setDrawMode("erase")}} style={{ color: drawMode == "erase" ? "#f0c930" : "#ffffff", transform: `scale(${drawMode == "erase" ? 1.5 : 1})` }}>🧽</p>
+                            <p className="draw-tool" onClick={() => {setDrawMode("none")}} style={{ color: drawMode == "none" ? "#4678eb" : "", transform: `scale(${drawMode == "none" ? 1.5 : 1})` }}><FaEye /></p>
+                            <p className="draw-tool" onClick={() => {setDrawMode("draw")}} style={{ color: drawMode == "draw" ? "#f0c930" : "", transform: `scale(${drawMode == "draw" ? 1.5 : 1})` }}><FaBrush /></p>
+                            <p className="draw-tool" onClick={() => {setDrawMode("erase")}} style={{ color: drawMode == "erase" ? "#f0c930" : "", transform: `scale(${drawMode == "erase" ? 1.5 : 1})` }}><FaEraser /></p>
                         </div>
 
                         <div className="flex flex-row gap-3">
                             <p
-                                className="material-symbols-outlined"
                                 onClick={() => setShowSettings(prev => !prev)}
-                            >settings</p>
+                            ><FaGear /></p>
 
-                            <p className="material-symbols-outlined" onClick={() => setSettings(prev => {
+                            <p onClick={() => setSettings(prev => {
                                 if (!prev.fullScreen) {
                                     // will become fullscreen
                                     setShowSettings(false);
@@ -413,7 +413,7 @@ export default function Home() {
                                     ...prev,
                                     fullScreen: !prev.fullScreen
                                 }
-                            })}>{settings.fullScreen ? "fullscreen_exit" : "fullscreen"}</p>
+                            })}>{settings.fullScreen ? <FaMinimize /> : <FaMaximize />}</p>
                         </div>
                     </div>
 
