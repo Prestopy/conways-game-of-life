@@ -31,7 +31,7 @@ export default function Home() {
     const gridDimsRef = useRef(gridDims);
     useEffect(() => { gridDimsRef.current = gridDims; }, [gridDims]);
 
-    const [viewportPos, setViewportPos] = useState({ x: 0, y: 0 });
+    // const [viewportPos, setViewportPos] = useState({ x: 0, y: 0 });
 
     const defaultSettings = {
         showRecency: true,
@@ -117,7 +117,7 @@ export default function Home() {
                 if (v[i][j].isAlive) {
                     let survive = false;
 
-                    let validAliveConditions = settingsRef.current.aliveConditions.filter(condition => {
+                    const validAliveConditions = settingsRef.current.aliveConditions.filter(condition => {
                         const { min, max } = condition;
 
                         return min <= max;
