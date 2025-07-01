@@ -1,7 +1,18 @@
 "use client";
 
 import {useEffect, useRef, useState} from "react";
-import {FaPlay, FaBrush, FaEraser, FaEye, FaGear, FaMaximize, FaMinimize, FaPause} from "react-icons/fa6";
+import {
+    FaPlay,
+    FaBrush,
+    FaEraser,
+    FaEye,
+    FaGear,
+    FaMaximize,
+    FaMinimize,
+    FaPause,
+    FaPlus,
+    FaDeleteLeft
+} from "react-icons/fa6";
 
 export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -20,6 +31,8 @@ export default function Home() {
     const gridDimsRef = useRef(gridDims);
     useEffect(() => { gridDimsRef.current = gridDims; }, [gridDims]);
 
+    const [viewportPos, setViewportPos] = useState({ x: 0, y: 0 });
+
     const defaultSettings = {
         showRecency: true,
         fullScreen: false,
@@ -27,14 +40,25 @@ export default function Home() {
         cellSize: 10, // px - size of each cell
 
         // stay alive
-        minToLive: 2,
-        maxToLive: 3,
+        aliveConditions: [
+            { min: 2, max: 3}
+        ],
+
+        // minToLive: 2,
+        // maxToLive: 3,
 
         // come to life
-        minToReproduce: 3,
-        maxToReproduce: 3
+        reproduceConditions: [
+            { min: 3, max: 3}
+        ],
+
+        // minToReproduce: 3,
+        // maxToReproduce: 3
     }
     const [settings, setSettings] = useState(defaultSettings);
+    useEffect(() => {
+        resizeGrid();
+    }, [settings.cellSize]);
 
     const settingsRef = useRef(settings);
     useEffect(() => { settingsRef.current = settings; }, [settings]);
@@ -66,7 +90,7 @@ export default function Home() {
                     } else {
                         ctx.fillStyle = "#ffffff";
                     }
-                    ctx.fillRect(j * 10, i * 10, 10, 10);
+                    ctx.fillRect(j * settingsRef.current.cellSize, i * settingsRef.current.cellSize, settingsRef.current.cellSize, settingsRef.current.cellSize);
                 }
             }
         }
@@ -91,16 +115,42 @@ export default function Home() {
                 }
 
                 if (v[i][j].isAlive) {
-                    if (count >= settingsRef.current.minToLive && count <= settingsRef.current.maxToLive) {
-                        newState[i][j].isAlive = true;
-                        newState[i][j].lastUpdated++;
-                    } else {
-                        newState[i][j].isAlive = false;
+                    let survive = false;
+
+                    let validAliveConditions = settingsRef.current.aliveConditions.filter(condition => {
+                        const { min, max } = condition;
+
+                        return min <= max;
+                    });
+
+                    if (validAliveConditions.length > 0) {
+                        for (const condition of validAliveConditions) {
+                            const {min, max} = condition;
+
+                            if (count >= min && count <= max) {
+                                newState[i][j].isAlive = true;
+                                newState[i][j].lastUpdated++;
+                                survive = true;
+
+                                break;
+                            }
+                        }
+
+                        if (!survive) {
+                            newState[i][j].isAlive = false;
+                        }
                     }
                 } else {
-                    if (count >= settingsRef.current.minToReproduce && count <= settingsRef.current.maxToReproduce) {
-                        newState[i][j].isAlive = true;
-                        newState[i][j].lastUpdated = 0;
+                    for (const condition in settingsRef.current.reproduceConditions) {
+                        const { min, max } = settingsRef.current.reproduceConditions[condition];
+
+                        if (min > max) continue;
+
+                        if (count >= min && count <= max) {
+                            newState[i][j].isAlive = true;
+                            newState[i][j].lastUpdated = 0;
+                            break;
+                        }
                     }
                 }
             }
@@ -361,11 +411,20 @@ export default function Home() {
     const drawModeRef = useRef(drawMode);
     useEffect(() => { drawModeRef.current = drawMode; }, [drawMode]);
 
-    const [cursorWidth, setCursorWidth] = useState(31);
+    const [cursorWidth, setCursorWidth] = useState(1);
     const cursorWidthRef = useRef(cursorWidth);
     useEffect(() => { cursorWidthRef.current = cursorWidth; }, [cursorWidth]);
 
     const tempDrawBlockRef = useRef(false);
+
+    const [tempAliveRule, setTempAliveRule] = useState<{
+        min: number,
+        max: number
+    } | null>(null);
+    const [tempReproduceRule, setTempReproduceRule] = useState<{
+        min: number,
+        max: number
+    } | null>(null);
 
     return (
         <div>
@@ -418,7 +477,7 @@ export default function Home() {
                     </div>
 
                     { showSettings && (
-                        <div className="px-5">
+                        <div className="px-5 h-[650px] overflow-auto">
                             <div className="flex flex-col gap-2">
                                 <h1>General</h1>
                                 <label onClick={() => resizeGrid(true)}>Trim out-of-bounds cells: <span className="font-mono font-bold">Trim (Currently {gridDims.x} x {gridDims.y})</span></label>
@@ -428,6 +487,19 @@ export default function Home() {
                                         showRecency: !prev.showRecency
                                     }
                                 })}>Indicate cell update recency: <span className="font-mono font-bold">{settings.showRecency ? "yes" : "no"}</span></label>
+                                <label>Cell size:</label>
+                                <div className="flex flex-row">
+                                    <input type="range" min={1} max={40} value={settings.cellSize} onChange={ (e) => {
+                                        setSettings(prev => {
+                                            return {
+                                                ...prev,
+                                                cellSize: e.target.valueAsNumber
+                                            }
+                                        })
+                                    } } className="font-mono" />
+                                    <p className="ml-5 font-mono font-bold">{settings.cellSize} pixel{settings.cellSize === 1 ? "" : "s"}</p>
+                                </div>
+
                                 <label>Millisecs/frame:</label>
                                 <div className="flex flex-row">
                                     <input type="range" min={5} max={2000} value={settings.frameLen} onChange={ (e) => {
@@ -447,75 +519,314 @@ export default function Home() {
                                     <input type="range" min={1} max={51} value={cursorWidth} onChange={ (e) => {
                                         setCursorWidth(e.target.valueAsNumber % 2 == 0 ? e.target.valueAsNumber + 1 : e.target.valueAsNumber);
                                     } } className="font-mono" />
-                                    <p className="ml-5 font-mono font-bold">{cursorWidth} pixel</p>
+                                    <p className="ml-5 font-mono font-bold">{cursorWidth} pixel{cursorWidth === 1 ? "" : "s"}</p>
                                 </div>
 
                                 <h1>Rules</h1>
-                                <label>Min neighbors alive to live: <input type="number" min={0} max={8} value={settings.minToLive} onChange={ (e) => {
-                                    setSettings(prev => {
-                                        if (e.target.valueAsNumber > settings.maxToLive) {
-                                            return {
-                                                ...prev,
-                                                minToLive: settings.maxToLive,
-                                                maxToLive: e.target.valueAsNumber
-                                            }
+
+                                <label>Neighbors necessary to live:</label>
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th className="text-left">Min</th>
+                                            <th className="text-left">Max</th>
+                                            <th className="text-left"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {
+                                            settings.aliveConditions.map((condition, index) => {
+                                                return (
+                                                    <tr key={index}>
+                                                        <td>
+                                                            <input type="number" min={0} max={8} value={condition.min} onChange={ (e) => {
+                                                                setSettings(prev => {
+                                                                    const newConditions = [...prev.aliveConditions];
+                                                                    newConditions[index].min = isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber));
+
+                                                                    return {
+                                                                        ...prev,
+                                                                        aliveConditions: newConditions
+                                                                    }
+                                                                })
+                                                            } } className="font-mono w-full h-full" style={{
+                                                                color: condition.min > condition.max ? "red" : ""
+                                                            }} />
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" min={0} max={8} value={condition.max} onChange={ (e) => {
+                                                                setSettings(prev => {
+                                                                    const newConditions = [...prev.aliveConditions];
+                                                                    newConditions[index].max = isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber));
+                                                                    return {
+                                                                        ...prev,
+                                                                        aliveConditions: newConditions
+                                                                    }
+                                                                })
+                                                            } } className="font-mono w-full h-full" style={{
+                                                                color: condition.min > condition.max ? "red" : ""
+                                                            }} />
+                                                        </td>
+                                                        <td>
+                                                            <button type="button" onClick={() => {
+                                                                setSettings(prev => {
+                                                                    const newConditions = [...prev.aliveConditions];
+                                                                    newConditions.splice(index, 1);
+                                                                    return {
+                                                                        ...prev,
+                                                                        aliveConditions: newConditions
+                                                                    }
+                                                                })
+                                                            }}><FaDeleteLeft /></button>
+                                                        </td>
+                                                    </tr>
+                                                )
+                                            })
                                         }
 
-                                        return {
-                                            ...prev,
-                                            minToLive: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
-                                        }
-                                    })
-                                } } className="font-mono" /></label>
-                                <label>Max neighbors alive to live: <input type="number" min={0} max={8} value={settings.maxToLive} onChange={ (e) => {
-                                    setSettings(prev => {
-                                        if (e.target.valueAsNumber < settings.minToLive) {
-                                            return {
-                                                ...prev,
-                                                minToLive: e.target.valueAsNumber,
-                                                maxToLive: settings.minToLive
-                                            }
-                                        }
-
-                                        return {
-                                            ...prev,
-                                            maxToLive: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
-                                        }
-                                    })
-                                } } className="font-mono" /></label>
-
-                                <label className="mt-2">Min neighbors to reproduce: <input type="number" min={0} max={8} value={settings.minToReproduce} onChange={ (e) => {
-                                    setSettings(prev => {
-                                        if (e.target.valueAsNumber > settings.maxToReproduce) {
-                                            return {
-                                                ...prev,
-                                                minToReproduce: settings.maxToReproduce,
-                                                maxToReproduce: e.target.valueAsNumber
-                                            }
-                                        }
-
-                                        return {
-                                            ...prev,
-                                            minToReproduce: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
-                                        }
-                                    })
-                                } } className="font-mono" /></label>
-                                <label>Max neighbors to reproduce: <input type="number" min={0} max={8} value={settings.maxToReproduce} onChange={ (e) => {
-                                    setSettings(prev => {
-                                        if (e.target.valueAsNumber < settings.minToReproduce) {
-                                            return {
-                                                ...prev,
-                                                minToReproduce: e.target.valueAsNumber,
-                                                maxToReproduce: settings.minToReproduce
-                                            }
+                                        {
+                                            tempAliveRule && (
+                                                <tr className="text-gray-500">
+                                                    <td>
+                                                        <input type="number" min={0} max={8} value={tempAliveRule.min} onChange={ (e) => {
+                                                            setTempAliveRule(prev => {
+                                                                if (!prev) return null;
+                                                                return {
+                                                                    ...prev,
+                                                                    min: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
+                                                                }
+                                                            })
+                                                        } } className="font-mono w-full h-full" style={{
+                                                            color: tempAliveRule.min > tempAliveRule.max ? "red" : ""
+                                                        }} />
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" min={0} max={8} value={tempAliveRule.max} onChange={ (e) => {
+                                                            setTempAliveRule(prev => {
+                                                                if (!prev) return null;
+                                                                return {
+                                                                    ...prev,
+                                                                    max: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
+                                                                }
+                                                            })
+                                                        } } className="font-mono w-full h-full" style={{
+                                                            color: tempAliveRule.min > tempAliveRule.max ? "red" : ""
+                                                        }} />
+                                                    </td>
+                                                    <td>
+                                                        <button className="text-green-500" type="button" onClick={() => {
+                                                            setSettings(prev => {
+                                                                const newConditions = [...prev.aliveConditions];
+                                                                newConditions.push(tempAliveRule);
+                                                                return {
+                                                                    ...prev,
+                                                                    aliveConditions: newConditions
+                                                                }
+                                                            })
+                                                            setTempAliveRule(null);
+                                                        }}><FaPlus /></button>
+                                                    </td>
+                                                </tr>
+                                            )
                                         }
 
-                                        return {
-                                            ...prev,
-                                            maxToReproduce: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
-                                        }
-                                    })
-                                } } className="font-mono" /></label>
+                                        <tr>
+                                            <td colSpan={2} className="text-left pt-2 underline underline-offset-2">
+                                                <button disabled={tempAliveRule !== null} className="flex flex-row gap-3" type="button" onClick={() => {
+                                                    setTempAliveRule({
+                                                        min: 0,
+                                                        max: 0
+                                                    })
+                                                }}>Add condition (OR)</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+
+                                <label className="mt-5">Neighbors necessary to reproduce:</label>
+                                <table>
+                                    <thead>
+                                    <tr>
+                                        <th className="text-left">Min</th>
+                                        <th className="text-left">Max</th>
+                                        <th className="text-left"></th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    {
+                                        settings.reproduceConditions.map((condition, index) => {
+                                            return (
+                                                <tr key={index}>
+                                                    <td>
+                                                        <input type="number" min={0} max={8} value={condition.min} onChange={ (e) => {
+                                                            setSettings(prev => {
+                                                                const newConditions = [...prev.reproduceConditions];
+                                                                newConditions[index].min = isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber));
+
+                                                                return {
+                                                                    ...prev,
+                                                                    reproduceConditions: newConditions
+                                                                }
+                                                            })
+                                                        } } className="font-mono w-full h-full" style={{
+                                                            color: condition.min > condition.max ? "red" : ""
+                                                        }} />
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" min={0} max={8} value={condition.max} onChange={ (e) => {
+                                                            setSettings(prev => {
+                                                                const newConditions = [...prev.reproduceConditions];
+                                                                newConditions[index].max = isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber));
+                                                                return {
+                                                                    ...prev,
+                                                                    reproduceConditions: newConditions
+                                                                }
+                                                            })
+                                                        } } className="font-mono w-full h-full" style={{
+                                                            color: condition.min > condition.max ? "red" : ""
+                                                        }} />
+                                                    </td>
+                                                    <td>
+                                                        <button type="button" onClick={() => {
+                                                            setSettings(prev => {
+                                                                const newConditions = [...prev.reproduceConditions];
+                                                                newConditions.splice(index, 1);
+                                                                return {
+                                                                    ...prev,
+                                                                    reproduceConditions: newConditions
+                                                                }
+                                                            })
+                                                        }}><FaDeleteLeft /></button>
+                                                    </td>
+                                                </tr>
+                                            )
+                                        })
+                                    }
+
+                                    {
+                                        tempReproduceRule && (
+                                            <tr className="text-gray-500">
+                                                <td>
+                                                    <input type="number" min={0} max={8} value={tempReproduceRule.min} onChange={ (e) => {
+                                                        setTempReproduceRule(prev => {
+                                                            if (!prev) return null;
+                                                            return {
+                                                                ...prev,
+                                                                min: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
+                                                            }
+                                                        })
+                                                    } } className="font-mono w-full h-full" style={{
+                                                        color: tempReproduceRule.min > tempReproduceRule.max ? "red" : ""
+                                                    }} />
+                                                </td>
+                                                <td>
+                                                    <input type="number" min={0} max={8} value={tempReproduceRule.max} onChange={ (e) => {
+                                                        setTempReproduceRule(prev => {
+                                                            if (!prev) return null;
+                                                            return {
+                                                                ...prev,
+                                                                max: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))
+                                                            }
+                                                        })
+                                                    } } className="font-mono w-full h-full" style={{
+                                                        color: tempReproduceRule.min > tempReproduceRule.max ? "red" : ""
+                                                    }} />
+                                                </td>
+                                                <td>
+                                                    <button className="text-green-500" type="button" onClick={() => {
+                                                        setSettings(prev => {
+                                                            const newConditions = [...prev.reproduceConditions];
+                                                            newConditions.push(tempReproduceRule);
+                                                            return {
+                                                                ...prev,
+                                                                reproduceConditions: newConditions
+                                                            }
+                                                        })
+                                                        setTempReproduceRule(null);
+                                                    }}><FaPlus /></button>
+                                                </td>
+                                            </tr>
+                                        )
+                                    }
+
+                                    <tr>
+                                        <td colSpan={2} className="text-left pt-2 underline underline-offset-2">
+                                            <button disabled={tempReproduceRule !== null} className="flex flex-row gap-3" type="button" onClick={() => {
+                                                setTempReproduceRule({
+                                                    min: 0,
+                                                    max: 0
+                                                })
+                                            }}>Add condition (OR)</button>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+
+                                {/*<label>Min neighbors alive to live: <input type="number" min={0} max={8} value={settings.minToLive} onChange={ (e) => {*/}
+                                {/*    setSettings(prev => {*/}
+                                {/*        if (e.target.valueAsNumber > settings.maxToLive) {*/}
+                                {/*            return {*/}
+                                {/*                ...prev,*/}
+                                {/*                minToLive: settings.maxToLive,*/}
+                                {/*                maxToLive: e.target.valueAsNumber*/}
+                                {/*            }*/}
+                                {/*        }*/}
+
+                                {/*        return {*/}
+                                {/*            ...prev,*/}
+                                {/*            minToLive: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
+                                {/*        }*/}
+                                {/*    })*/}
+                                {/*} } className="font-mono" /></label>*/}
+                                {/*<label>Max neighbors alive to live: <input type="number" min={0} max={8} value={settings.maxToLive} onChange={ (e) => {*/}
+                                {/*    setSettings(prev => {*/}
+                                {/*        if (e.target.valueAsNumber < settings.minToLive) {*/}
+                                {/*            return {*/}
+                                {/*                ...prev,*/}
+                                {/*                minToLive: e.target.valueAsNumber,*/}
+                                {/*                maxToLive: settings.minToLive*/}
+                                {/*            }*/}
+                                {/*        }*/}
+
+                                {/*        return {*/}
+                                {/*            ...prev,*/}
+                                {/*            maxToLive: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
+                                {/*        }*/}
+                                {/*    })*/}
+                                {/*} } className="font-mono" /></label>*/}
+
+                                {/*<label className="mt-2">Min neighbors to reproduce: <input type="number" min={0} max={8} value={settings.minToReproduce} onChange={ (e) => {*/}
+                                {/*    setSettings(prev => {*/}
+                                {/*        if (e.target.valueAsNumber > settings.maxToReproduce) {*/}
+                                {/*            return {*/}
+                                {/*                ...prev,*/}
+                                {/*                minToReproduce: settings.maxToReproduce,*/}
+                                {/*                maxToReproduce: e.target.valueAsNumber*/}
+                                {/*            }*/}
+                                {/*        }*/}
+
+                                {/*        return {*/}
+                                {/*            ...prev,*/}
+                                {/*            minToReproduce: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
+                                {/*        }*/}
+                                {/*    })*/}
+                                {/*} } className="font-mono" /></label>*/}
+                                {/*<label>Max neighbors to reproduce: <input type="number" min={0} max={8} value={settings.maxToReproduce} onChange={ (e) => {*/}
+                                {/*    setSettings(prev => {*/}
+                                {/*        if (e.target.valueAsNumber < settings.minToReproduce) {*/}
+                                {/*            return {*/}
+                                {/*                ...prev,*/}
+                                {/*                minToReproduce: e.target.valueAsNumber,*/}
+                                {/*                maxToReproduce: settings.minToReproduce*/}
+                                {/*            }*/}
+                                {/*        }*/}
+
+                                {/*        return {*/}
+                                {/*            ...prev,*/}
+                                {/*            maxToReproduce: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
+                                {/*        }*/}
+                                {/*    })*/}
+                                {/*} } className="font-mono" /></label>*/}
 
                                 <div className="mt-8 flex flex-col gap-2">
                                     <p
