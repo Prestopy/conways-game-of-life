@@ -203,8 +203,8 @@ export default function Home() {
 
         ctx.clearRect(0, 0, width, height);
 
-        const newY = Math.floor(height / settings.cellSize)
-        const newX = Math.floor(width / settings.cellSize)
+        const newY = Math.floor(height / settingsRef.current.cellSize)
+        const newX = Math.floor(width / settingsRef.current.cellSize)
 
         if (trim) {
             // trim the grid to the new size
@@ -246,9 +246,9 @@ export default function Home() {
         canvas.height = height;
 
         // Initialize the state with random values
-        for (let i = 0; i < Math.floor(height / settings.cellSize); i++) {
+        for (let i = 0; i < Math.floor(height / settingsRef.current.cellSize); i++) {
             state.current[i] = [];
-            for (let j = 0; j < Math.floor(width / settings.cellSize); j++) {
+            for (let j = 0; j < Math.floor(width / settingsRef.current.cellSize); j++) {
                 state.current[i][j] = {
                     isAlive: Math.random() < 0.5,
                     lastUpdated: 0
@@ -331,8 +331,8 @@ export default function Home() {
 
         window.addEventListener("mousemove", (e) => {
             // save the cursor's position
-            const x = Math.floor(e.clientX / settings.cellSize);
-            const y = Math.floor(e.clientY / settings.cellSize);
+            const x = Math.floor(e.clientX / settingsRef.current.cellSize);
+            const y = Math.floor(e.clientY / settingsRef.current.cellSize);
             mousePositionRef.current = { x, y };
         });
 
@@ -347,7 +347,7 @@ export default function Home() {
             if (drawModeRef.current !== "none") {
                 cursorCtx.strokeStyle = "#ffffff";
                 cursorCtx.lineWidth = 2;
-                cursorCtx.strokeRect((x - Math.floor(cursorWidthRef.current / 2)) * settings.cellSize, (y - Math.floor(cursorWidthRef.current / 2)) * settings.cellSize, settings.cellSize * cursorWidthRef.current, settings.cellSize * cursorWidthRef.current);
+                cursorCtx.strokeRect((x - Math.floor(cursorWidthRef.current / 2)) * settingsRef.current.cellSize, (y - Math.floor(cursorWidthRef.current / 2)) * settingsRef.current.cellSize, settingsRef.current.cellSize * cursorWidthRef.current, settingsRef.current.cellSize * cursorWidthRef.current);
             }
 
             if (
@@ -372,12 +372,12 @@ export default function Home() {
                             cell.lastUpdated = 0;
 
                             ctx.fillStyle = settingsRef.current.showRecency ? "#4678eb" : "#ffffff";
-                            ctx.fillRect(xi * settings.cellSize, yj * settings.cellSize, settings.cellSize, settings.cellSize);
+                            ctx.fillRect(xi * settingsRef.current.cellSize, yj * settingsRef.current.cellSize, settingsRef.current.cellSize, settingsRef.current.cellSize);
                         } else if (drawModeRef.current === "erase") {
                             cell.isAlive = false;
                             cell.lastUpdated = 0;
 
-                            ctx.clearRect(xi * settings.cellSize, yj * settings.cellSize, settings.cellSize, settings.cellSize);
+                            ctx.clearRect(xi * settingsRef.current.cellSize, yj * settingsRef.current.cellSize, settingsRef.current.cellSize, settingsRef.current.cellSize);
                         }
                     }
                 }
