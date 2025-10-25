@@ -56,9 +56,7 @@ export default function Home() {
         // maxToReproduce: 3
     }
     const [settings, setSettings] = useState(defaultSettings);
-    useEffect(() => {
-        resizeGrid();
-    }, [settings.cellSize]);
+    useEffect(() => { resizeGrid(); }, [settings]);
 
     const settingsRef = useRef(settings);
     useEffect(() => { settingsRef.current = settings; }, [settings]);
