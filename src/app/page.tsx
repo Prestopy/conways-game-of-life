@@ -13,246 +13,34 @@ import {
     FaPlus,
     FaDeleteLeft
 } from "react-icons/fa6";
+import {useGameOfLife, defaultSettings} from "@/hooks/useGameOfLife";
 
 export default function Home() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const cursorCanvasRef = useRef<HTMLCanvasElement>(null);
 
-    interface Cell {
-        isAlive: boolean;
-        lastUpdated: number; // number of frames since last update
-    }
+    const {
+        stateRef,
+        gridDims,
+        gridDimsRef,
+        settings,
+        setSettings,
+        settingsRef,
+        renderGrid,
+        step,
+        resizeGrid,
+        resetGrid,
+    } = useGameOfLife(JSON.parse(JSON.stringify(defaultSettings)));
 
-    const state = useRef<Cell[][]>([[]]);
-    const [gridDims, setGridDims] = useState({
-        x: state.current.length,
-        y: state.current[0].length
-    });
-    const gridDimsRef = useRef(gridDims);
-    useEffect(() => { gridDimsRef.current = gridDims; }, [gridDims]);
+    useEffect(() => { resizeGrid(canvasRef.current, cursorCanvasRef.current); }, [settings]);
 
-    // const [viewportPos, setViewportPos] = useState({ x: 0, y: 0 });
-
-    const defaultSettings = {
-        showRecency: true,
-        fullScreen: false,
-        frameLen: 150, // ms - time between frames
-        cellSize: 10, // px - size of each cell
-
-        // stay alive
-        aliveConditions: [
-            { min: 2, max: 3}
-        ],
-
-        // minToLive: 2,
-        // maxToLive: 3,
-
-        // come to life
-        reproduceConditions: [
-            { min: 3, max: 3}
-        ],
-
-        // minToReproduce: 3,
-        // maxToReproduce: 3
-    }
-    const [settings, setSettings] = useState(defaultSettings);
-    useEffect(() => { resizeGrid(); }, [settings]);
-
-    const settingsRef = useRef(settings);
-    useEffect(() => { settingsRef.current = settings; }, [settings]);
-
-    // const [initWindowSize, setInitWindowSize] = useState({
-    //     width: window.innerWidth,
-    //     height: window.innerHeight
-    // });
-
-    const renderGrid = (ctx: CanvasRenderingContext2D) => {
-        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-        const v = state.current;
-        for (let i=0; i<v.length; i++) {
-            for (let j=0; j<v[i].length; j++) {
-                if (v[i][j].isAlive) {
-                    if (settingsRef.current.showRecency) {
-                        if (v[i][j].lastUpdated == 0) {
-                            ctx.fillStyle = "#4678eb";
-                        } else if (v[i][j].lastUpdated < 3) {
-                            ctx.fillStyle = "#1ed15a";
-                        } else if (v[i][j].lastUpdated < 6) {
-                            ctx.fillStyle = "#f0c930";
-                        } else if (v[i][j].lastUpdated < 15) {
-                            ctx.fillStyle = "#e65054";
-                        } else {
-                            ctx.fillStyle = "#646970";
-                        }
-                    } else {
-                        ctx.fillStyle = "#ffffff";
-                    }
-                    ctx.fillRect(j * settingsRef.current.cellSize, i * settingsRef.current.cellSize, settingsRef.current.cellSize, settingsRef.current.cellSize);
-                }
-            }
-        }
-    }
-
-    const step = (ctx: CanvasRenderingContext2D) => {
-        const v = state.current;
-
-        // update
-        const newState = state.current.map(row => row.map(cell => ({ ...cell })));
-
-        for (let i=0; i<v.length; i++) {
-            for (let j=0; j<v[i].length; j++) {
-                let count = 0;
-                for (let x=-1; x<=1; x++) {
-                    for (let y=-1; y<=1; y++) {
-                        if (x === 0 && y === 0) continue;
-                        if (v[i+x] && v[i+x][j+y] && v[i+x][j+y].isAlive) {
-                            count++;
-                        }
-                    }
-                }
-
-                if (v[i][j].isAlive) {
-                    let survive = false;
-
-                    const validAliveConditions = settingsRef.current.aliveConditions.filter(condition => {
-                        const { min, max } = condition;
-
-                        return min <= max;
-                    });
-
-                    if (validAliveConditions.length > 0) {
-                        for (const condition of validAliveConditions) {
-                            const {min, max} = condition;
-
-                            if (count >= min && count <= max) {
-                                newState[i][j].isAlive = true;
-                                newState[i][j].lastUpdated++;
-                                survive = true;
-
-                                break;
-                            }
-                        }
-
-                        if (!survive) {
-                            newState[i][j].isAlive = false;
-                        }
-                    }
-                } else {
-                    for (const condition in settingsRef.current.reproduceConditions) {
-                        const { min, max } = settingsRef.current.reproduceConditions[condition];
-
-                        if (min > max) continue;
-
-                        if (count >= min && count <= max) {
-                            newState[i][j].isAlive = true;
-                            newState[i][j].lastUpdated = 0;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        state.current = newState;
-
-        // render AFTER updates to make sure cell drawings are accounted for
-        renderGrid(ctx);
-
-        // Request the next frame based on the frame length
-        const startTime = performance.now();
-
-        const nextFrame = () => {
-            const currentTime = performance.now();
-            const elapsedTime = currentTime - startTime;
-
-            if (!isPausedRef.current && elapsedTime >= settingsRef.current.frameLen) {
-                requestAnimationFrame(() => step(ctx));
-            } else {
-                setTimeout(nextFrame, 1);
-            }
-        };
-
-        nextFrame();
-        // ^^ this allows the frame rate to change even if a frame's duration hasn't fully elapsed yet (e.g., prev frame was 5000ms, but you cahnge it BEFORE the end)
-    }
-
-    const resizeGrid = (trim: boolean = false) => {
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        // main canvas
+    const resetGridLocal = () => {
         const canvas = canvasRef.current;
         if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // cursor canvas
-        const cursorCanvas = cursorCanvasRef.current;
-        if (!cursorCanvas) return;
-        const cursorCtx = cursorCanvas.getContext("2d");
-        if (!cursorCtx) return;
-
-        cursorCanvas.width = width;
-        cursorCanvas.height = height;
-
-        ctx.clearRect(0, 0, width, height);
-
-        const newY = Math.floor(height / settingsRef.current.cellSize)
-        const newX = Math.floor(width / settingsRef.current.cellSize)
-
-        if (trim) {
-            // trim the grid to the new size
-            state.current = state.current.slice(0, newY).map(row => row.slice(0, newX));
-        }
-
-        for (let i = 0; i < newY; i++) {
-            if (i >= state.current.length) {
-                state.current.push([]);
-            }
-
-            for (let j = 0; j < newX; j++) {
-                if (j >= state.current[i].length) {
-                    state.current[i].push({
-                        isAlive: Math.random() < 0.5,
-                        lastUpdated: 1
-                    })
-                }
-            }
-        }
-
-        setGridDims({
-            x: state.current[0].length,
-            y: state.current.length
-        });
-    }
-
-    const resetGrid = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        resetGrid(canvas);
 
         const ctx = canvas.getContext("2d");
-        if (!ctx) return;
-
-        const width = window.innerWidth;
-        const height = window.innerHeight;
-
-        canvas.width = width;
-        canvas.height = height;
-
-        // Initialize the state with random values
-        for (let i = 0; i < Math.floor(height / settingsRef.current.cellSize); i++) {
-            state.current[i] = [];
-            for (let j = 0; j < Math.floor(width / settingsRef.current.cellSize); j++) {
-                state.current[i][j] = {
-                    isAlive: Math.random() < 0.5,
-                    lastUpdated: 0
-                }
-            }
-        }
+        if (ctx) renderGrid(ctx);
     }
 
     const mousePositionRef = useRef({ x: 0, y: 0 });
@@ -280,25 +68,12 @@ export default function Home() {
         cursorCanvas.width = width;
         cursorCanvas.height = height;
 
-        // Initialize the state with random values
-        for (let i = 0; i < Math.floor(height / settings.cellSize); i++) {
-            state.current[i] = [];
-            for (let j = 0; j < Math.floor(width / settings.cellSize); j++) {
-                state.current[i][j] = {
-                    isAlive: Math.random() < 0.5,
-                    lastUpdated: 0
-                }
-            }
-        }
-
-        setGridDims({
-            x: Math.floor(width / settings.cellSize),
-            y: Math.floor(height / settings.cellSize)
-        })
+        // Initialize the state via hook
+        resizeGrid(canvas, cursorCanvas);
 
         // event listeners
         window.addEventListener("resize", () => {
-            resizeGrid();
+            resizeGrid(canvasRef.current, cursorCanvasRef.current);
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         });
@@ -335,9 +110,10 @@ export default function Home() {
         });
 
 
-        // animation
-        requestAnimationFrame(() => step(ctx));
+        // animation: start stepping using hook.step and isPausedRef
+        requestAnimationFrame(() => step(ctx, isPausedRef));
 
+        // cursor animation loop
         const cursorStep = () => {
             const {x, y} = mousePositionRef.current;
 
@@ -364,7 +140,7 @@ export default function Home() {
                         const yj = y + j;
                         if (yj < 0 || yj >= gridDimsRef.current.y) continue;
 
-                        const cell = state.current[yj][xi];
+                        const cell = stateRef.current[yj][xi];
                         if (drawModeRef.current === "draw") {
                             cell.isAlive = true;
                             cell.lastUpdated = 0;
@@ -389,7 +165,6 @@ export default function Home() {
     const [showSettings, setShowSettings] = useState(false);
 
     const getMsPerFrameColor = (value: number, min: number, max: number) => {
-        // Example: Color ranges from red (low) to green (high)
         const diff = max - min;
         const t = (value-min)/(diff-min);
 
@@ -458,7 +233,7 @@ export default function Home() {
                                     setShowSettings(false);
                                     if (!document.fullscreenElement) {
                                         document.documentElement.requestFullscreen();
-                                        resizeGrid();
+                                        resizeGrid(canvasRef.current, cursorCanvasRef.current);
                                     }
                                 } else {
                                     // will become windowed
@@ -478,7 +253,7 @@ export default function Home() {
                         <div className="px-5 h-[650px] overflow-auto">
                             <div className="flex flex-col gap-2">
                                 <h1>General</h1>
-                                <label onClick={() => resizeGrid(true)}>Trim out-of-bounds cells: <span className="font-mono font-bold">Trim (Currently {gridDims.x} x {gridDims.y})</span></label>
+                                <label onClick={() => resizeGrid(canvasRef.current, cursorCanvasRef.current, true)}>Trim out-of-bounds cells: <span className="font-mono font-bold">Trim (Currently {gridDims.x} x {gridDims.y})</span></label>
                                 <label onClick={() => setSettings(prev => {
                                     return {
                                         ...prev,
@@ -760,90 +535,24 @@ export default function Home() {
                                     </tbody>
                                 </table>
 
-                                {/*<label>Min neighbors alive to live: <input type="number" min={0} max={8} value={settings.minToLive} onChange={ (e) => {*/}
-                                {/*    setSettings(prev => {*/}
-                                {/*        if (e.target.valueAsNumber > settings.maxToLive) {*/}
-                                {/*            return {*/}
-                                {/*                ...prev,*/}
-                                {/*                minToLive: settings.maxToLive,*/}
-                                {/*                maxToLive: e.target.valueAsNumber*/}
-                                {/*            }*/}
-                                {/*        }*/}
-
-                                {/*        return {*/}
-                                {/*            ...prev,*/}
-                                {/*            minToLive: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
-                                {/*        }*/}
-                                {/*    })*/}
-                                {/*} } className="font-mono" /></label>*/}
-                                {/*<label>Max neighbors alive to live: <input type="number" min={0} max={8} value={settings.maxToLive} onChange={ (e) => {*/}
-                                {/*    setSettings(prev => {*/}
-                                {/*        if (e.target.valueAsNumber < settings.minToLive) {*/}
-                                {/*            return {*/}
-                                {/*                ...prev,*/}
-                                {/*                minToLive: e.target.valueAsNumber,*/}
-                                {/*                maxToLive: settings.minToLive*/}
-                                {/*            }*/}
-                                {/*        }*/}
-
-                                {/*        return {*/}
-                                {/*            ...prev,*/}
-                                {/*            maxToLive: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
-                                {/*        }*/}
-                                {/*    })*/}
-                                {/*} } className="font-mono" /></label>*/}
-
-                                {/*<label className="mt-2">Min neighbors to reproduce: <input type="number" min={0} max={8} value={settings.minToReproduce} onChange={ (e) => {*/}
-                                {/*    setSettings(prev => {*/}
-                                {/*        if (e.target.valueAsNumber > settings.maxToReproduce) {*/}
-                                {/*            return {*/}
-                                {/*                ...prev,*/}
-                                {/*                minToReproduce: settings.maxToReproduce,*/}
-                                {/*                maxToReproduce: e.target.valueAsNumber*/}
-                                {/*            }*/}
-                                {/*        }*/}
-
-                                {/*        return {*/}
-                                {/*            ...prev,*/}
-                                {/*            minToReproduce: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
-                                {/*        }*/}
-                                {/*    })*/}
-                                {/*} } className="font-mono" /></label>*/}
-                                {/*<label>Max neighbors to reproduce: <input type="number" min={0} max={8} value={settings.maxToReproduce} onChange={ (e) => {*/}
-                                {/*    setSettings(prev => {*/}
-                                {/*        if (e.target.valueAsNumber < settings.minToReproduce) {*/}
-                                {/*            return {*/}
-                                {/*                ...prev,*/}
-                                {/*                minToReproduce: e.target.valueAsNumber,*/}
-                                {/*                maxToReproduce: settings.minToReproduce*/}
-                                {/*            }*/}
-                                {/*        }*/}
-
-                                {/*        return {*/}
-                                {/*            ...prev,*/}
-                                {/*            maxToReproduce: isNaN(e.target.valueAsNumber) ? 0 : Math.max(0, Math.min(8, e.target.valueAsNumber))*/}
-                                {/*        }*/}
-                                {/*    })*/}
-                                {/*} } className="font-mono" /></label>*/}
-
                                 <div className="mt-8 flex flex-col gap-2">
                                     <p
                                         className="text-red-500 cursor-pointer"
                                         onClick={() => {
-                                            setSettings(defaultSettings);
+                                            setSettings(JSON.parse(JSON.stringify(defaultSettings)));
                                         }}
                                     >Reset rules</p>
                                     <p
                                         className="text-red-500 cursor-pointer"
-                                        onClick={resetGrid}
+                                        onClick={resetGridLocal}
                                     >Randomize grid</p>
                                     <p
                                         className="text-red-500 cursor-pointer"
                                         onClick={() => {
                                             for (let i=0; i<gridDimsRef.current.y; i++) {
                                                 for (let j=0; j<gridDimsRef.current.x; j++) {
-                                                    state.current[i][j].isAlive = false;
-                                                    state.current[i][j].lastUpdated = 0;
+                                                    stateRef.current[i][j].isAlive = false;
+                                                    stateRef.current[i][j].lastUpdated = 0;
                                                 }
                                             }
                                         }}
